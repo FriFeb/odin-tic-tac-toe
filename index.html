@@ -11,24 +11,28 @@
 <body>
   <h1>Tic tac toe game</h1>
 
-  <div class="container-lg mt-3">
-    <div class="container w-25 fs-5 text-center border border-dark">
-      <div class="row">
-        <div class="col" data-row="1" data-col="1"></div>
-        <div class="col" data-row="1" data-col="2"></div>
-        <div class="col" data-row="1" data-col="3"></div>
-      </div>
-      <div class="row">
-        <div class="col" data-row="2" data-col="1"></div>
-        <div class="col" data-row="2" data-col="2"></div>
-        <div class="col" data-row="2" data-col="3"></div>
-      </div>
-      <div class="row">
-        <div class="col" data-row="3" data-col="1"></div>
-        <div class="col" data-row="3" data-col="2"></div>
-        <div class="col" data-row="3" data-col="3"></div>
-      </div>
+  <div class="container-sm mt-5">
 
+    <div class="row justify-content-center text-center" style="font-size: 3rem;">
+      <div class="col col-md-6 col-lg-4 gameboard">
+
+        <div class="row">
+          <div class="col p-3 border-end border-dark" data-row="1" data-col="1"><span></span></div>
+          <div class="col p-3 border-end border-dark" data-row="1" data-col="2"><span></span></div>
+          <div class="col p-3" data-row="1" data-col="3"><span></span></div>
+        </div>
+        <div class="row border-top border-dark">
+          <div class="col p-3 border-end border-dark" data-row="2" data-col="1"><span></span></div>
+          <div class="col p-3 border-end border-dark" data-row="2" data-col="2"><span></span></div>
+          <div class="col p-3" data-row="2" data-col="3"><span></span></div>
+        </div>
+        <div class="row border-top border-dark">
+          <div class="col p-3 border-end border-dark" data-row="3" data-col="1"><span></span></div>
+          <div class="col p-3 border-end border-dark" data-row="3" data-col="2"><span></span></div>
+          <div class="col p-3" data-row="3" data-col="3"><span></span></div>
+        </div>
+
+      </div>
     </div>
   </div>
 
