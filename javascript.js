@@ -1,14 +1,14 @@
 const gameboard = (function () {
   const gameboard = [
-    [" ", " ", " "],
-    [" ", " ", " "],
-    [" ", " ", " "],
+    ["0", "0", "0"],
+    ["0", "0", "0"],
+    ["0", "0", "0"],
   ];
 
   const getGameboard = () => gameboard;
 
   const isEmptyCell = (rowIndex, columnIndex) =>
-    gameboard[rowIndex][columnIndex] === " ";
+    gameboard[rowIndex][columnIndex] === "0";
 
   const isEmptyCellLeft = () => {
     for (let i = 0; i < gameboard.length; i++) {
@@ -19,7 +19,7 @@ const gameboard = (function () {
     return false;
   };
 
-  const setSign = (rowIndex, columnIndex, playerSign) => {
+  const setCellSign = (rowIndex, columnIndex, playerSign) => {
     gameboard[rowIndex][columnIndex] = playerSign;
   };
 
@@ -65,12 +65,50 @@ const gameboard = (function () {
     return false;
   };
 
+  const getDOMGameboard = () => {
+    const cells = document.querySelectorAll(".col");
+
+    const columnsPerRow = 3;
+
+    const rows = Array.from(cells).reduce((rows, cell, index) => {
+      // ~~ = Math.floor()
+      const rowIndex = ~~(index / columnsPerRow);
+
+      if (!rows[rowIndex]) {
+        rows[rowIndex] = [];
+      }
+
+      rows[rowIndex].push(cell);
+
+      return rows;
+    }, []);
+
+    return rows;
+  };
+
+  const setDOMGameboard = () => {
+    const rows = getDOMGameboard();
+
+    rows.forEach((row, rowIndex) => {
+      row.forEach((col, colIndex) => {
+        if (gameboard[rowIndex][colIndex] === "0") {
+          col.innerHTML = "0";
+          col.classList.add("opacity-0");
+        } else {
+          col.innerHTML = gameboard[rowIndex][colIndex];
+          col.classList.remove("opacity-0");
+        }
+      });
+    });
+  };
+
   return {
     getGameboard,
     isEmptyCell,
     isEmptyCellLeft,
-    setSign,
+    setCellSign,
     isWinner,
+    setDOMGameboard,
   };
 })();
 
@@ -106,7 +144,7 @@ const game = (function () {
         ) - 1;
     }
 
-    gameboard.setSign(hor, ver, this.getPlayerSign());
+    gameboard.setCellSign(hor, ver, this.getPlayerSign());
   }
 
   function playRobotTurn() {
@@ -118,7 +156,7 @@ const game = (function () {
       ver = Math.floor(Math.random() * 3);
     }
 
-    gameboard.setSign(hor, ver, this.getPlayerSign());
+    gameboard.setCellSign(hor, ver, this.getPlayerSign());
   }
 
   const getFullGameboardMessage = () => "Draw! The game is over!";
@@ -129,17 +167,17 @@ const game = (function () {
 
   const isGameEnd = () => {
     if (!gameboard.isEmptyCellLeft()) {
-      console.log(getFullGameboardMessage());
+      alert(getFullGameboardMessage());
       return true;
     }
 
     if (gameboard.isWinner(player1.getPlayerSign())) {
-      console.log(getPlayerWinnerMessage(player1.getPlayerName()));
+      alert(getPlayerWinnerMessage(player1.getPlayerName()));
       return true;
     }
 
     if (gameboard.isWinner(player2.getPlayerSign())) {
-      console.log(getPlayerLoserMessage(player2.getPlayerName()));
+      alert(getPlayerLoserMessage(player2.getPlayerName()));
       return true;
     }
 
@@ -149,13 +187,13 @@ const game = (function () {
   const playGame = () => {
     while (true) {
       playTurn.call(player1);
+      gameboard.setDOMGameboard();
       if (isGameEnd()) break;
 
       playRobotTurn.call(player2);
+      gameboard.setDOMGameboard();
       if (isGameEnd()) break;
     }
-
-    console.log(gameboard.getGameboard());
   };
 
   return { playGame };
