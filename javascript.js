@@ -10,13 +10,13 @@ const gameboard = (function () {
   const isEmptyCell = (rowIndex, columnIndex) =>
     gameboard[rowIndex][columnIndex] === "0";
 
-  const isEmptyCellLeft = () => {
+  const isFullGameboard = () => {
     for (let i = 0; i < gameboard.length; i++) {
       for (let j = 0; j < gameboard[i].length; j++) {
-        if (isEmptyCell(i, j)) return true;
+        if (isEmptyCell(i, j)) return false;
       }
     }
-    return false;
+    return true;
   };
 
   const setCellSign = (rowIndex, columnIndex, playerSign) => {
@@ -105,7 +105,7 @@ const gameboard = (function () {
   return {
     getGameboard,
     isEmptyCell,
-    isEmptyCellLeft,
+    isFullGameboard,
     setCellSign,
     isWinner,
     setDOMGameboard,
@@ -123,82 +123,112 @@ const player1 = createPlayer("Me", "x");
 const player2 = createPlayer("Robot", "o");
 
 const game = (function () {
-  player1Score = 0;
-  player2Score = 0;
+  const isDraw = gameboard.isFullGameboard;
+  const isPlayerWinner = gameboard.isWinner;
 
-  function playTurn() {
-    let hor, ver;
-    hor = prompt(`${this.getPlayerName()} Enter row`, "") - 1;
-    ver = prompt(`${this.getPlayerName()} Enter column`, "") - 1;
-
-    while (!gameboard.isEmptyCell(hor, ver)) {
-      hor =
-        prompt(
-          `Error! Cell is not empty! ${this.getPlayerName()} Enter new row`,
-          ""
-        ) - 1;
-      ver =
-        prompt(
-          `Error! Cell is not empty! ${this.getPlayerName()} Enter new column`,
-          ""
-        ) - 1;
-    }
-
-    gameboard.setCellSign(hor, ver, this.getPlayerSign());
-  }
-
-  function playRobotTurn() {
-    let hor = Math.floor(Math.random() * 3);
-    let ver = Math.floor(Math.random() * 3);
-
-    while (!gameboard.isEmptyCell(hor, ver)) {
-      hor = Math.floor(Math.random() * 3);
-      ver = Math.floor(Math.random() * 3);
-    }
-
-    gameboard.setCellSign(hor, ver, this.getPlayerSign());
-  }
-
-  const getFullGameboardMessage = () => "Draw! The game is over!";
+  const getDrawMessage = () => "Draw! The game is over!";
 
   const getPlayerWinnerMessage = (playerName) => `Victory! ${playerName} won!`;
 
   const getPlayerLoserMessage = (playerName) => `Defeat! ${playerName} won!`;
 
-  const isGameEnd = () => {
-    if (!gameboard.isEmptyCellLeft()) {
-      alert(getFullGameboardMessage());
-      return true;
-    }
-
-    if (gameboard.isWinner(player1.getPlayerSign())) {
+  const showGameOverMessage = () => {
+    if (isPlayerWinner(player1.getPlayerSign())) {
       alert(getPlayerWinnerMessage(player1.getPlayerName()));
-      return true;
+      return;
     }
-
-    if (gameboard.isWinner(player2.getPlayerSign())) {
+    if (isPlayerWinner(player2.getPlayerSign())) {
       alert(getPlayerLoserMessage(player2.getPlayerName()));
+      return;
+    }
+    if (isDraw()) {
+      alert(getDrawMessage());
+      return;
+    }
+  };
+
+  const isGameOver = () => {
+    if (
+      isDraw() ||
+      isPlayerWinner(player1.getPlayerSign()) ||
+      isPlayerWinner(player2.getPlayerSign())
+    ) {
       return true;
     }
-
     return false;
   };
 
-  const playGame = () => {
-    while (true) {
-      playTurn.call(player1);
-      gameboard.setDOMGameboard();
-      if (isGameEnd()) break;
+  function createTurn() {
+    let hor, ver;
 
-      playRobotTurn.call(player2);
-      gameboard.setDOMGameboard();
-      if (isGameEnd()) break;
+    const setHor = (newHor) => (hor = newHor);
+    const setVer = (newVer) => (ver = newVer);
+
+    const generateRandomTurn = () => {
+      // const generateRandomNumber = () => {
+      //   return Math.floor(Math.random() * 3);
+      // };
+
+      // hor = generateRandomNumber();
+      // ver = generateRandomNumber();
+
+      hor = Math.floor(Math.random() * 3);
+      ver = Math.floor(Math.random() * 3);
+
+      if (!isLegitTurn()) generateRandomTurn();
+    };
+
+    const isLegitTurn = () => gameboard.isEmptyCell(hor, ver);
+
+    const playTurn = function () {
+      gameboard.setCellSign(hor, ver, this.getPlayerSign());
+    };
+
+    return {
+      setHor,
+      setVer,
+      generateRandomTurn,
+      isLegitTurn,
+      playTurn,
+    };
+  }
+
+  const playerTurn = createTurn();
+  const robotTurn = createTurn();
+
+  const playRound = (hor, ver) => {
+    if (isGameOver()) return;
+
+    playerTurn.setHor(hor);
+    playerTurn.setVer(ver);
+    if (!playerTurn.isLegitTurn()) return;
+
+    playerTurn.playTurn.call(player1);
+    gameboard.setDOMGameboard();
+    if (isGameOver()) {
+      setTimeout(showGameOverMessage, 0);
+      return;
+    }
+
+    robotTurn.generateRandomTurn();
+    robotTurn.playTurn.call(player2);
+    gameboard.setDOMGameboard();
+    if (isGameOver()) {
+      setTimeout(showGameOverMessage, 0);
+      return;
     }
   };
 
-  return { playGame };
+  return { playRound };
 })();
 
 // const controllPanel = (function () { }}();
 
-game.playGame();
+gameboard.setDOMGameboard();
+// game.playRound();
+
+document.querySelector(".container").addEventListener("click", (e) => {
+  if (!e.target.classList.contains("col")) return;
+
+  game.playRound(e.target.dataset.row - 1, e.target.dataset.col - 1);
+});
