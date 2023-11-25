@@ -1,3 +1,44 @@
+let player1, player2;
+
+function createPlayer(name, mark) {
+  const turn = (function createTurn() {
+    let row, col;
+
+    const setCoords = (newRow, newCol) => {
+      row = newRow;
+      col = newCol;
+    };
+
+    const isLegitTurn = () => gameboard.isEmptyCell(row, col);
+
+    const generateRandomTurn = () => {
+      row = Math.floor(Math.random() * 3);
+      col = Math.floor(Math.random() * 3);
+
+      if (!isLegitTurn()) generateRandomTurn();
+    };
+
+    const playTurn = function () {
+      gameboard.setCellMark(row, col, getPlayerMark());
+    };
+
+    return {
+      setCoords,
+      generateRandomTurn,
+      isLegitTurn,
+      playTurn,
+    };
+  })();
+
+  const getPlayerName = () => name;
+  const setPlayerName = (newName) => (name = newName);
+
+  const getPlayerMark = () => mark;
+  const setPlayerMark = (newMark) => (mark = newMark);
+
+  return { turn, getPlayerName, setPlayerName, getPlayerMark, setPlayerMark };
+}
+
 const gameboard = (function () {
   const gameboard = [
     ["0", "0", "0"],
@@ -5,10 +46,64 @@ const gameboard = (function () {
     ["0", "0", "0"],
   ];
 
-  const getGameboard = () => gameboard;
+  const get = () => gameboard;
 
-  const isEmptyCell = (rowIndex, columnIndex) =>
-    gameboard[rowIndex][columnIndex] === "0";
+  const reset = () => {
+    gameboard.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => (gameboard[rowIndex][colIndex] = "0"));
+    });
+  };
+
+  const isEmptyCell = (rowIndex, colIndex) =>
+    gameboard[rowIndex][colIndex] === "0";
+
+  const setCellMark = (rowIndex, colIndex, playerMark) => {
+    gameboard[rowIndex][colIndex] = playerMark;
+  };
+
+  const isPlayerWinner = (player) => {
+    const playerMark = player.getPlayerMark();
+
+    for (let i = 0; i < gameboard.length; i++) {
+      // check row
+      if (
+        gameboard[i][0] === playerMark &&
+        gameboard[i][1] === playerMark &&
+        gameboard[i][2] === playerMark
+      ) {
+        return true;
+      }
+
+      // check column
+      if (
+        gameboard[0][i] === playerMark &&
+        gameboard[1][i] === playerMark &&
+        gameboard[2][i] === playerMark
+      ) {
+        return true;
+      }
+    }
+
+    if (
+      // Check diagonal 1
+      gameboard[0][0] === playerMark &&
+      gameboard[1][1] === playerMark &&
+      gameboard[2][2] === playerMark
+    ) {
+      return true;
+    }
+
+    if (
+      // Check diagonal 2
+      gameboard[0][2] === playerMark &&
+      gameboard[1][1] === playerMark &&
+      gameboard[2][0] === playerMark
+    ) {
+      return true;
+    }
+
+    return false;
+  };
 
   const isFullGameboard = () => {
     for (let i = 0; i < gameboard.length; i++) {
@@ -19,216 +114,454 @@ const gameboard = (function () {
     return true;
   };
 
-  const setCellSign = (rowIndex, columnIndex, playerSign) => {
-    gameboard[rowIndex][columnIndex] = playerSign;
-  };
-
-  const isWinner = (playerSign) => {
-    for (let i = 0; i < gameboard.length; i++) {
-      // check row
-      if (
-        gameboard[i][0] === playerSign &&
-        gameboard[i][1] === playerSign &&
-        gameboard[i][2] === playerSign
-      ) {
-        return true;
-      }
-
-      // check column
-      if (
-        gameboard[0][i] === playerSign &&
-        gameboard[1][i] === playerSign &&
-        gameboard[2][i] === playerSign
-      ) {
-        return true;
-      }
-    }
-
-    if (
-      // Check diagonal 1
-      gameboard[0][0] === playerSign &&
-      gameboard[1][1] === playerSign &&
-      gameboard[2][2] === playerSign
-    ) {
-      return true;
-    }
-
-    if (
-      // Check diagonal 2
-      gameboard[0][2] === playerSign &&
-      gameboard[1][1] === playerSign &&
-      gameboard[2][0] === playerSign
-    ) {
-      return true;
-    }
-
-    return false;
-  };
-
-  const getDOMGameboard = () => {
-    const cells = document.querySelectorAll(".col");
-
-    const columnsPerRow = 3;
-
-    const rows = Array.from(cells).reduce((rows, cell, index) => {
-      // ~~ = Math.floor()
-      const rowIndex = ~~(index / columnsPerRow);
-
-      if (!rows[rowIndex]) {
-        rows[rowIndex] = [];
-      }
-
-      rows[rowIndex].push(cell);
-
-      return rows;
-    }, []);
-
-    return rows;
-  };
-
-  const setDOMGameboard = () => {
-    const rows = getDOMGameboard();
-
-    rows.forEach((row, rowIndex) => {
-      row.forEach((col, colIndex) => {
-        if (gameboard[rowIndex][colIndex] === "0") {
-          col.innerHTML = "0";
-          col.classList.add("opacity-0");
-        } else {
-          col.innerHTML = gameboard[rowIndex][colIndex];
-          col.classList.remove("opacity-0");
-        }
-      });
-    });
-  };
-
   return {
-    getGameboard,
+    get,
+    reset,
     isEmptyCell,
+    setCellMark,
+    isPlayerWinner,
     isFullGameboard,
-    setCellSign,
-    isWinner,
-    setDOMGameboard,
   };
 })();
 
-function createPlayer(name, sign) {
-  const getPlayerName = () => name;
-  const getPlayerSign = () => sign;
-
-  return { name, getPlayerName, getPlayerSign };
-}
-
-const player1 = createPlayer("Me", "x");
-const player2 = createPlayer("Robot", "o");
-
 const game = (function () {
-  const isDraw = gameboard.isFullGameboard;
-  const isPlayerWinner = gameboard.isWinner;
+  function createMessage(winMsg, lossMsg, drawMsg) {
+    let message, type;
 
-  const getDrawMessage = () => "Draw! The game is over!";
+    const set = () => {
+      const roundResult = round.getState();
 
-  const getPlayerWinnerMessage = (playerName) => `Victory! ${playerName} won!`;
-
-  const getPlayerLoserMessage = (playerName) => `Defeat! ${playerName} won!`;
-
-  const showGameOverMessage = () => {
-    if (isPlayerWinner(player1.getPlayerSign())) {
-      alert(getPlayerWinnerMessage(player1.getPlayerName()));
-      return;
-    }
-    if (isPlayerWinner(player2.getPlayerSign())) {
-      alert(getPlayerLoserMessage(player2.getPlayerName()));
-      return;
-    }
-    if (isDraw()) {
-      alert(getDrawMessage());
-      return;
-    }
-  };
-
-  const isGameOver = () => {
-    if (
-      isDraw() ||
-      isPlayerWinner(player1.getPlayerSign()) ||
-      isPlayerWinner(player2.getPlayerSign())
-    ) {
-      return true;
-    }
-    return false;
-  };
-
-  function createTurn() {
-    let hor, ver;
-
-    const setHor = (newHor) => (hor = newHor);
-    const setVer = (newVer) => (ver = newVer);
-
-    const generateRandomTurn = () => {
-      // const generateRandomNumber = () => {
-      //   return Math.floor(Math.random() * 3);
-      // };
-
-      // hor = generateRandomNumber();
-      // ver = generateRandomNumber();
-
-      hor = Math.floor(Math.random() * 3);
-      ver = Math.floor(Math.random() * 3);
-
-      if (!isLegitTurn()) generateRandomTurn();
+      if (roundResult === "player1") {
+        message = winMsg;
+        type = "success";
+        return;
+      }
+      if (roundResult === "player2") {
+        message = lossMsg;
+        type = "danger";
+        return;
+      }
+      if (roundResult === "draw") {
+        message = drawMsg;
+        type = "dark";
+        return;
+      }
     };
 
-    const isLegitTurn = () => gameboard.isEmptyCell(hor, ver);
+    const show = () => {
+      DOMElements.alertBox.hideAlert();
 
-    const playTurn = function () {
-      gameboard.setCellSign(hor, ver, this.getPlayerSign());
+      set();
+      const alert = DOMElements.alertBox.createAlert(message, type);
+      DOMElements.alertBox.showAlert(alert);
     };
 
     return {
-      setHor,
-      setVer,
-      generateRandomTurn,
-      isLegitTurn,
-      playTurn,
+      show,
     };
   }
 
-  const playerTurn = createTurn();
-  const robotTurn = createTurn();
+  const round = (function () {
+    let message;
 
-  const playRound = (hor, ver) => {
-    if (isGameOver()) return;
+    const isOver = () => {
+      return (
+        gameboard.isFullGameboard() ||
+        gameboard.isPlayerWinner(player1) ||
+        gameboard.isPlayerWinner(player2)
+      );
+    };
 
-    playerTurn.setHor(hor);
-    playerTurn.setVer(ver);
-    if (!playerTurn.isLegitTurn()) return;
+    const getState = () => {
+      if (gameboard.isPlayerWinner(player1)) {
+        return "player1";
+      }
+      if (gameboard.isPlayerWinner(player2)) {
+        return "player2";
+      }
+      if (gameboard.isFullGameboard()) {
+        return "draw";
+      }
+    };
 
-    playerTurn.playTurn.call(player1);
-    gameboard.setDOMGameboard();
-    if (isGameOver()) {
-      setTimeout(showGameOverMessage, 0);
-      return;
-    }
+    const endRound = () => {
+      score.update();
+      setTimeout(message.show, 0);
+    };
 
-    robotTurn.generateRandomTurn();
-    robotTurn.playTurn.call(player2);
-    gameboard.setDOMGameboard();
-    if (isGameOver()) {
-      setTimeout(showGameOverMessage, 0);
-      return;
-    }
+    const generateMessage = () => {
+      message = createMessage(
+        `<i class="bi bi-trophy me-3"></i> ` +
+          `${player1.getPlayerName()} won!`,
+        `<i class="bi bi-emoji-frown me-3"></i>` +
+          `${player2.getPlayerName()} won!`,
+        '<i class="bi bi-people me-3"></i>' + "Draw!"
+      );
+    };
+
+    return {
+      isOver,
+      getState,
+      endRound,
+      generateMessage,
+    };
+  })();
+
+  const game = (function () {
+    let message;
+
+    const isOver = () => Math.max(...score.get()) === 5;
+
+    const endGame = () => {
+      DOMElements.newRoundBtn.disable();
+      setTimeout(message.show, 0);
+    };
+
+    const generateMessage = () => {
+      message = createMessage(
+        `Game is over! ${player1.getPlayerName()} won!`,
+        `Game is over! ${player2.getPlayerName()} won!`,
+        "Game is over! Draw!"
+      );
+    };
+
+    return { isOver, endGame, generateMessage };
+  })();
+
+  const score = (function () {
+    let player1Score = 0,
+      player2Score = 0;
+
+    const get = () => [player1Score, player2Score];
+
+    const reset = () => (player1Score = player2Score = 0);
+
+    const update = () => {
+      const roundResult = round.getState();
+
+      if (roundResult === "player1") {
+        player1Score++;
+      }
+      if (roundResult === "player2") {
+        player2Score++;
+      }
+
+      DOMElements.scorePanel.setPlayersScore(...get());
+    };
+
+    return {
+      get,
+      reset,
+      update,
+    };
+  })();
+
+  const playRound = (function () {
+    const isLegitPlayerTurn = (player, row, col) => {
+      player.turn.setCoords(row, col);
+      return player.turn.isLegitTurn();
+    };
+
+    const playPlayerTurn = (player, row, col) => {
+      player.turn.playTurn();
+      DOMElements.DOMGameboard.render();
+    };
+
+    const playRobotTurn = () => {
+      player2.turn.generateRandomTurn();
+      player2.turn.playTurn();
+      DOMElements.DOMGameboard.render();
+    };
+
+    const isPlayerTurnFirst = (player) => {
+      return player.getPlayerMark() === "x";
+    };
+
+    const play = (row, col) => {
+      if (round.isOver() || game.isOver()) return;
+
+      if (!isLegitPlayerTurn(player1, row, col)) return;
+      playPlayerTurn(player1, row, col);
+
+      if (round.isOver()) {
+        round.endRound();
+        if (game.isOver()) {
+          game.endGame();
+        }
+        return;
+      }
+
+      playRobotTurn();
+
+      if (round.isOver()) {
+        round.endRound();
+        if (game.isOver()) {
+          game.endGame();
+        }
+        return;
+      }
+    };
+
+    return {
+      isPlayerTurnFirst,
+      playRobotTurn,
+      play,
+    };
+  })();
+
+  return {
+    round,
+    game,
+    score,
+    playRound,
   };
-
-  return { playRound };
 })();
 
-// const controllPanel = (function () { }}();
+const DOMElements = (function () {
+  const startGameBtn = (function () {
+    const btn = document.querySelector("#start-game");
 
-gameboard.setDOMGameboard();
-// game.playRound();
+    const toggleHiddenStateStartGameForm = () => {
+      if (startGameForm.isHidden()) {
+        startGameForm.show();
+        newRoundBtn.hide();
+        scorePanel.hide();
+        DOMGameboard.hide();
+        alertBox.hideAlert();
+      } else {
+        startGameForm.hide();
+      }
+    };
 
-document.querySelector(".container").addEventListener("click", (e) => {
-  if (!e.target.classList.contains("col")) return;
+    btn.addEventListener("click", toggleHiddenStateStartGameForm);
+  })();
 
-  game.playRound(e.target.dataset.row - 1, e.target.dataset.col - 1);
-});
+  const startGameForm = (function () {
+    const form = document.querySelector("#start-game-form");
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const playerData = form.elements;
+
+      player1 = createPlayer(playerData.nickname.value, "x");
+      player2 = createPlayer("Robot", "o");
+
+      if (playerData.markO.checked) {
+        player1.setPlayerMark("o");
+        player2.setPlayerMark("x");
+      }
+
+      startGameForm.hide();
+
+      newRoundBtn.restartRound();
+      newRoundBtn.enable();
+      newRoundBtn.show();
+
+      game.score.reset();
+      scorePanel.setPlayersName();
+      scorePanel.setPlayersScore(...game.score.get());
+      scorePanel.show();
+
+      DOMGameboard.show();
+
+      game.round.generateMessage();
+      game.game.generateMessage();
+    });
+
+    const isHidden = () => form.parentElement.hidden;
+
+    const show = () => {
+      form.parentElement.hidden = false;
+    };
+
+    const hide = () => {
+      form.parentElement.hidden = true;
+    };
+
+    return {
+      isHidden,
+      show,
+      hide,
+    };
+  })();
+
+  const newRoundBtn = (function () {
+    const btn = document.querySelector("#new-round");
+
+    const restartRound = () => {
+      gameboard.reset();
+      DOMGameboard.render();
+      alertBox.hideAlert();
+
+      if (!game.playRound.isPlayerTurnFirst(player1)) {
+        game.playRound.playRobotTurn();
+      }
+    };
+
+    btn.addEventListener("click", restartRound);
+
+    const enable = () => {
+      btn.classList.remove("disabled");
+    };
+
+    const disable = () => {
+      btn.classList.add("disabled");
+    };
+
+    const show = () => {
+      btn.parentElement.hidden = false;
+    };
+
+    const hide = () => {
+      btn.parentElement.hidden = true;
+    };
+
+    return {
+      restartRound,
+      enable,
+      disable,
+      show,
+      hide,
+    };
+  })();
+
+  const scorePanel = (function () {
+    const panel = document.querySelector("#score-panel");
+
+    const setPlayersName = () => {
+      panel.querySelector("#player1-nickname").innerHTML =
+        player1.getPlayerName();
+      panel.querySelector("#player2-nickname").innerHTML =
+        player2.getPlayerName();
+    };
+
+    const setPlayersScore = (player1Score, player2Score) => {
+      panel.querySelector("#player1-score").innerHTML = player1Score;
+      panel.querySelector("#player2-score").innerHTML = player2Score;
+    };
+
+    const show = () => {
+      panel.hidden = false;
+    };
+
+    const hide = () => {
+      panel.hidden = true;
+    };
+
+    return {
+      setPlayersName,
+      setPlayersScore,
+      show,
+      hide,
+    };
+  })();
+
+  const DOMGameboard = (function () {
+    const board = document.querySelector("#gameboard");
+
+    const get = () => board;
+
+    const getRows = () => {
+      const cells = board.querySelectorAll(".col>span");
+
+      const columnsPerRow = 3;
+
+      return Array.from(cells).reduce((rows, cell, index) => {
+        // ~~ === Math.floor()
+        const rowIndex = ~~(index / columnsPerRow);
+
+        if (!rows[rowIndex]) {
+          rows[rowIndex] = [];
+        }
+
+        rows[rowIndex].push(cell);
+
+        return rows;
+      }, []);
+    };
+
+    const render = () => {
+      const rows = getRows();
+
+      rows.forEach((row, rowIndex) => {
+        row.forEach((col, colIndex) => {
+          if (gameboard.get()[rowIndex][colIndex] === "0") {
+            col.innerHTML = "0";
+            col.classList.add("invisible");
+          } else {
+            col.innerHTML = gameboard.get()[rowIndex][colIndex];
+            col.classList.remove("invisible");
+          }
+        });
+      });
+    };
+
+    const show = () => {
+      board.parentElement.hidden = false;
+    };
+
+    const hide = () => {
+      board.parentElement.hidden = true;
+    };
+
+    return {
+      get,
+      render,
+      show,
+      hide,
+    };
+  })();
+
+  const alertBox = (function () {
+    const div = document.querySelector(".alert-box");
+
+    const createAlert = (text, type) => {
+      return `
+      <div class="alert alert-${type} dismissible fade show">
+        <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+        ${text}
+      </div>
+      `;
+    };
+
+    const showAlert = (alert) => {
+      div.insertAdjacentHTML("afterbegin", alert);
+    };
+
+    const hideAlert = () => {
+      div.innerHTML = "";
+    };
+
+    return {
+      createAlert,
+      showAlert,
+      hideAlert,
+    };
+  })();
+
+  const activateGameboard = () => {
+    DOMGameboard.render();
+
+    DOMGameboard.get().addEventListener("click", (e) => {
+      const cell = e.target.closest(".col");
+
+      if (!cell) return;
+
+      game.playRound.play(cell.dataset.row - 1, cell.dataset.col - 1);
+    });
+  };
+
+  activateGameboard();
+  startGameForm.hide();
+  newRoundBtn.hide();
+  scorePanel.hide();
+  DOMGameboard.hide();
+
+  return {
+    newRoundBtn,
+    scorePanel,
+    DOMGameboard,
+    alertBox,
+  };
+})();
